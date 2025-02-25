@@ -46,17 +46,37 @@ const deleteTransaction = async (req, res) => {
       return res.status(404).json({ message: "Transaction not found" });
     }
 
-    if (transaction.user.toString() !== req.user.id) {
-      return res
-        .status(401)
-        .json({ message: "Not authorized to delete this transaction" });
-    }
+    await Transaction.findByIdAndDelete(req.params.id);
 
-    await transaction.remove();
-    res.json({ message: "Transaction deleted" });
+    res.json({ message: "Transaction deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-module.exports = { getTransactions, addTransaction, deleteTransaction };
+// Update a transaction
+const updateTransaction = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    let transaction = await Transaction.findById(id);
+    if (!transaction) {
+      return res.status(404).json({ message: "Transaction not found" });
+    }
+
+    transaction = await Transaction.findByIdAndUpdate(id, req.body, {
+      new: true,
+    });
+
+    res.json(transaction);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = {
+  getTransactions,
+  addTransaction,
+  deleteTransaction,
+  updateTransaction,
+};
