@@ -46,8 +46,14 @@ const deleteTransaction = async (req, res) => {
       return res.status(404).json({ message: "Transaction not found" });
     }
 
-    await Transaction.findByIdAndDelete(req.params.id);
+    // Check if the logged-in user is the owner of the transaction
+    if (transaction.user.toString() !== req.user.id) {
+      return res
+        .status(403)
+        .json({ message: "Not authorized to delete this transaction" });
+    }
 
+    await transaction.deleteOne();
     res.json({ message: "Transaction deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -57,18 +63,26 @@ const deleteTransaction = async (req, res) => {
 // Update a transaction
 const updateTransaction = async (req, res) => {
   try {
-    const { id } = req.params;
+    const transaction = await Transaction.findById(req.params.id);
 
-    let transaction = await Transaction.findById(id);
     if (!transaction) {
       return res.status(404).json({ message: "Transaction not found" });
     }
 
-    transaction = await Transaction.findByIdAndUpdate(id, req.body, {
-      new: true,
-    });
+    // Check if the logged-in user is the owner of the transaction
+    if (transaction.user.toString() !== req.user.id) {
+      return res
+        .status(403)
+        .json({ message: "Not authorized to update this transaction" });
+    }
 
-    res.json(transaction);
+    // Update the transaction
+    const updatedTransaction = await Transaction.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+    res.json(updatedTransaction);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
