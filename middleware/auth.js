@@ -9,20 +9,20 @@ const protect = async (req, res, next) => {
     req.headers.authorization.startsWith("Bearer")
   ) {
     try {
-      token = req.headers.authorization.split(" ")[1];
+      token = req.headers.authorization.split(" ")[1]; // קבלת הטוקן
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET); // פענוח ה-JWT
 
-      req.user = await User.findById(decoded.id).select("-password");
+      req.user = await User.findById(decoded.id).select("-password"); // שמירת המשתמש ב-req.user
 
-      next();
+      return next(); // ממשיך לפונקציה הבאה רק אם ההכל תקין
     } catch (error) {
-      res.status(401).json({ message: "Not authorized, token failed" });
+      return res.status(401).json({ message: "Not authorized, token failed" });
     }
   }
 
   if (!token) {
-    res.status(401).json({ message: "Not authorized, no token" });
+    return res.status(401).json({ message: "Not authorized, no token" });
   }
 };
 
