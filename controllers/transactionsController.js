@@ -139,7 +139,6 @@ const getTransactionById = async (req, res) => {
 // Get transaction statistics (total income, total expenses, category breakdown)
 const getTransactionStats = async (req, res) => {
   try {
-    // ✅ מחפש לפי המשתמש ולא לפי ID ספציפי
     const transactions = await Transaction.find({ user: req.user.id });
 
     if (!transactions.length) {
@@ -163,11 +162,19 @@ const getTransactionStats = async (req, res) => {
       categoryBreakdown[transaction.category] += transaction.amount;
     });
 
-    res.json({
+    // **Format the response for the frontend**
+    const formattedStats = {
       totalIncome,
       totalExpenses,
-      categoryBreakdown,
-    });
+      categoryBreakdown: Object.entries(categoryBreakdown).map(
+        ([category, amount]) => ({
+          category,
+          amount,
+        })
+      ),
+    };
+
+    res.json(formattedStats);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
