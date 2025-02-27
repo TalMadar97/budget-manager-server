@@ -136,10 +136,48 @@ const getTransactionById = async (req, res) => {
   }
 };
 
+// Get transaction statistics (total income, total expenses, category breakdown)
+const getTransactionStats = async (req, res) => {
+  try {
+    // ✅ מחפש לפי המשתמש ולא לפי ID ספציפי
+    const transactions = await Transaction.find({ user: req.user.id });
+
+    if (!transactions.length) {
+      return res.json({ message: "No transactions found", data: {} });
+    }
+
+    let totalIncome = 0;
+    let totalExpenses = 0;
+    let categoryBreakdown = {};
+
+    transactions.forEach((transaction) => {
+      if (transaction.type === "income") {
+        totalIncome += transaction.amount;
+      } else if (transaction.type === "expense") {
+        totalExpenses += transaction.amount;
+      }
+
+      if (!categoryBreakdown[transaction.category]) {
+        categoryBreakdown[transaction.category] = 0;
+      }
+      categoryBreakdown[transaction.category] += transaction.amount;
+    });
+
+    res.json({
+      totalIncome,
+      totalExpenses,
+      categoryBreakdown,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getTransactions,
   addTransaction,
   deleteTransaction,
   updateTransaction,
   getTransactionById,
+  getTransactionStats,
 };

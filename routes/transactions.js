@@ -7,21 +7,25 @@ const {
   deleteTransaction,
   updateTransaction,
   getTransactionById,
+  getTransactionStats,
 } = require("../controllers/transactionsController");
 
-// 📌 חיבור לנתיב GET (מחזיר את כל העסקאות של המשתמש)
+// 📌 Route to get transactions statistics
+router.get("/stats", protect, getTransactionStats);
+
+// 📌 Get all transactions of the user
 router.get("/", protect, getTransactions);
 
-// 📌 חיבור לנתיב POST (מוסיף עסקה חדשה)
+// 📌 Get a specific transaction by ID
+router.get("/:id", protect, getTransactionById);
+
+// 📌 Add a new transaction
 router.post("/", protect, addTransaction);
 
 // 📌 Update a transaction
 router.put("/:id", protect, updateTransaction);
 
-// 📌 חיבור לנתיב DELETE (מוחק עסקה לפי מזהה)
+// 📌 Delete a transaction
 router.delete("/:id", protect, deleteTransaction);
-
-// Get transaction by ID
-router.get("/:id", protect, getTransactionById);
 
 module.exports = router;
