@@ -14,9 +14,11 @@ app.use(morgan("dev"));
 
 const authRoutes = require("./routes/auth");
 const transactionRoutes = require("./routes/transactions");
+const userRoutes = require("./routes/user");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/transactions", transactionRoutes);
+app.use("/api/users", userRoutes);
 
 app.get("/", (req, res) => {
   res.send("Budget Manager API is running...");
