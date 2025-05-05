@@ -10,25 +10,31 @@ const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    const userExists = await User.findOne({ email });
-    if (userExists) {
+    // 🔹 בדיקת קלט
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    const user = await User.create({ name, email, password });
+    const newUser = new User({ name, email, password });
+    const savedUser = await newUser.save();
 
-    if (user) {
-      res.status(201).json({
-        _id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        token: generateToken(user.id),
-      });
-    } else {
-      res.status(400).json({ message: "Invalid user data" });
-    }
+    res.status(201).json({
+      _id: savedUser._id,
+      name: savedUser.name,
+      email: savedUser.email,
+      role: savedUser.role,
+      token: generateToken(savedUser._id),
+    });
   } catch (error) {
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map((val) => val.message);
+      return res.status(400).json({ message: messages.join(", ") });
+    }
     res.status(500).json({ message: error.message });
   }
 };
@@ -37,19 +43,27 @@ const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
-
-    if (user && (await bcrypt.compare(password, user.password))) {
-      res.json({
-        _id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        token: generateToken(user.id),
-      });
-    } else {
-      res.status(401).json({ message: "Invalid email or password" });
+    if (!email || !password) {
+      return res.status(400).json({ message: "All fields are required" });
     }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    res.status(200).json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      token: generateToken(user._id),
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
