@@ -1,5 +1,5 @@
 const Transaction = require("../models/Transaction");
-const User = require("../models/User"); // Import User model
+const User = require("../models/User");
 
 /**
  * Get all user transactions
@@ -27,7 +27,6 @@ const addTransaction = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Calculate total expenses
     const totalExpenses = await Transaction.aggregate([
       { $match: { user: user._id, type: "expense" } },
       { $group: { _id: null, total: { $sum: "$amount" } } },
@@ -36,12 +35,10 @@ const addTransaction = async (req, res) => {
     const totalSpent = totalExpenses.length > 0 ? totalExpenses[0].total : 0;
     const newTotal = totalSpent + amount;
 
-    // Check if the expense exceeds the user's budget
     if (type === "expense" && user.budget > 0 && newTotal > user.budget) {
       return res.status(400).json({ message: "Budget exceeded!" });
     }
 
-    // Create new transaction
     const transaction = new Transaction({
       user: req.user.id,
       type,
@@ -68,7 +65,6 @@ const deleteTransaction = async (req, res) => {
       return res.status(404).json({ message: "Transaction not found" });
     }
 
-    // Ensure the logged-in user is the owner
     if (transaction.user.toString() !== req.user.id) {
       return res
         .status(403)
@@ -93,18 +89,18 @@ const updateTransaction = async (req, res) => {
       return res.status(404).json({ message: "Transaction not found" });
     }
 
-    // Ensure the logged-in user is the owner
     if (transaction.user.toString() !== req.user.id) {
       return res
         .status(403)
         .json({ message: "Not authorized to update this transaction" });
     }
 
-    // Update the transaction and return the new version
     const updatedTransaction = await Transaction.findByIdAndUpdate(
       req.params.id,
       req.body,
-      { new: true }
+      {
+        new: true,
+      }
     );
     res.json(updatedTransaction);
   } catch (error) {
@@ -123,7 +119,6 @@ const getTransactionById = async (req, res) => {
       return res.status(404).json({ message: "Transaction not found" });
     }
 
-    // Ensure the logged-in user is the owner
     if (transaction.user.toString() !== req.user.id) {
       return res
         .status(403)
@@ -136,7 +131,9 @@ const getTransactionById = async (req, res) => {
   }
 };
 
-// Get transaction statistics (total income, total expenses, category breakdown)
+/**
+ * Get transaction statistics – separated by income and expenses
+ */
 const getTransactionStats = async (req, res) => {
   try {
     const transactions = await Transaction.find({ user: req.user.id });
@@ -147,34 +144,37 @@ const getTransactionStats = async (req, res) => {
 
     let totalIncome = 0;
     let totalExpenses = 0;
-    let categoryBreakdown = {};
+    const incomeBreakdown = {};
+    const expenseBreakdown = {};
 
-    transactions.forEach((transaction) => {
-      if (transaction.type === "income") {
-        totalIncome += transaction.amount;
-      } else if (transaction.type === "expense") {
-        totalExpenses += transaction.amount;
+    transactions.forEach((tx) => {
+      if (tx.type === "income") {
+        totalIncome += tx.amount;
+        incomeBreakdown[tx.category] =
+          (incomeBreakdown[tx.category] || 0) + tx.amount;
+      } else if (tx.type === "expense") {
+        totalExpenses += tx.amount;
+        expenseBreakdown[tx.category] =
+          (expenseBreakdown[tx.category] || 0) + tx.amount;
       }
-
-      if (!categoryBreakdown[transaction.category]) {
-        categoryBreakdown[transaction.category] = 0;
-      }
-      categoryBreakdown[transaction.category] += transaction.amount;
     });
 
-    // **Format the response for the frontend**
-    const formattedStats = {
+    res.json({
       totalIncome,
       totalExpenses,
-      categoryBreakdown: Object.entries(categoryBreakdown).map(
+      incomeBreakdown: Object.entries(incomeBreakdown).map(
         ([category, amount]) => ({
           category,
           amount,
         })
       ),
-    };
-
-    res.json(formattedStats);
+      expenseBreakdown: Object.entries(expenseBreakdown).map(
+        ([category, amount]) => ({
+          category,
+          amount,
+        })
+      ),
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
