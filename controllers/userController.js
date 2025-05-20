@@ -9,7 +9,10 @@ const updateBudget = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    user.budget = req.body.budget || user.budget;
+    if (typeof req.body.budget === "number") {
+      user.budget = req.body.budget;
+    }
+
     await user.save();
 
     res.json({ message: "Budget updated successfully", budget: user.budget });
